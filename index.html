@@ -1,0 +1,101 @@
+<script src="d3.v7.min.js"></script>
+<script src="d3-org-chart@3.1.0.js"></script>
+<script src="d3-flextree.js"></script>
+
+<style type="text/css">
+  .hide {
+    display: none;
+  }
+
+</style>
+
+<script>
+  var chart = null;
+  let dragNode;
+  let dropNode;
+  let dragEnabled = false;
+  let dragStartX;
+  let dragStartY;
+  let isDragStarting = false;
+
+  let undoActions = [];
+  let redoActions = [];
+  
+  d3.json('./tamer1.json')
+  .then((data) => {
+    chart = new d3.OrgChart()
+      .nodeHeight((d) => 85 + 25)
+      .nodeWidth((d) => 220 + 2)
+      .childrenMargin((d) => 50)
+      .compactMarginBetween((d) => 35)
+      .compactMarginPair((d) => 30)
+      .neighbourMargin((a, b) => 20)
+      .nodeContent(function (d, i, arr, state) {
+        return generateContent(d);
+      })
+      .nodeEnter(function (node) {
+        d3.select(this).call(
+          d3
+            .drag()
+            .filter(function (x, node) {
+              return dragEnabled && this.classList.contains('draggable');
+            })
+            .on('start', function (d, node) {
+              onDragStart(this, d, node);
+            })
+            .on('drag', function (dragEvent, node) {
+              onDrag(this, dragEvent);
+            })
+            .on('end', function (d) {
+              onDragEnd(this, d);
+            })
+        );
+      })
+      .container('.chart-container')
+      .data(data)
+      .render();
+  });
+
+  function generateContent(d) {
+    const color = '#FFFFFF';
+    const imageDiffVert = 25 + 2;
+    return `
+      <div class="node-container" style='
+      width:${d.width}px;
+      height:${d.height}px;
+      padding-top:${imageDiffVert - 2}px;
+      padding-left:1px;
+      padding-right:1px'>
+              <div class="content-container" style="font-family: 'Inter', sans-serif;  margin-left:-1px;width:${
+                d.width - 2
+              }px;height:${
+      d.height - imageDiffVert
+    }px;border-radius:10px;border: ${
+      d.data._highlighted || d.data._upToTheRootHighlighted
+        ? '5px solid #E27396"'
+        : '1px solid #E4E2E9"'
+    } >
+                  <div style="display:flex;justify-content:flex-end;margin-top:5px;margin-right:8px">
+                   30%
+                    
+                  
+                  </div>
+                  <div  style="margin-top:${
+                    -imageDiffVert - 20
+                  }px;margin-left:${15}px;border-radius:100px;width:50px;height:50px;" ></div>
+                 
+                  <div style="font-size:15px;color:#08011E;margin-left:20px;margin-top:10px">  ${
+                    d.data.name
+                  } ${d.data.lastName} </div>
+                  <div style="color:#716E7B;margin-left:20px;margin-top:3px;font-size:10px;"> ${
+                    d.data.position
+                  } </div>
+
+              </div>
+          </div>
+      `;
+  }
+</script>
+
+
+<div class="chart-container"></div>

@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <title>Bootstrap Example</title>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+  <script src="d3.v7.min.js"></script>
+  <script src="d3-org-chart@3.1.0.js"></script>
+  <script src="d3-flextree.js"></script>
+  <style>
+    body{
+      background-color: #efefef;
+    }
+    .hide {
+      display: none;
+    }
+    .chart-container {
+      width: 100%;
+      height: 100vh;
+      background-color: #fff;
+      padding: 5vh;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid" style="height: 100vh;">
+    <div class="row">
+      <div class="col-lg-2 ">
+        <br><br>
+        <input type="file" id="csvUpload" accept=".csv" />
+      </div>
+      <div class="col-lg-10">
+
+         <div class="chart-container"></div> 
+      </div>
+    </div>
+  </div>
+  
+
+
+  <script>
+    var chart = null;
+
+    let dragNode;
+    let dropNode;
+    let dragEnabled = false;
+    let dragStartX;
+    let dragStartY;
+    let isDragStarting = false;
+    var ActiveId = "r77"
+    var data = null
+
+
+    let undoActions = [];
+    let redoActions = [];
+
+    const testDev = document.getElementById('test');
+    const fileInput = document.getElementById('csvUpload');
+    fileInput.addEventListener('change', handleFileUpload);
+
+
+
+    function changeActiveId(input){
+
+      ActiveId = input
+    
+      renderChart(data);
+    }
+
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const text = e.target.result;
+          data = d3.csvParse(text);
+    
+    
+       
+          renderChart(data);
+        };
+        reader.readAsText(file);
+      }
+    }
+
+    function renderChart(data) {
+      if (chart) {
+        d3.select('.chart-container').html(''); // Clear previous chart
+      }
+
+      chart = new d3.OrgChart()
+        .nodeHeight((d) => 85 + 25)
+        .nodeWidth((d) => 220 + 2)
+        .childrenMargin((d) => 50)
+        .compactMarginBetween((d) => 35)
+        .compactMarginPair((d) => 30)
+        .neighbourMargin((a, b) => 20)
+        .nodeContent(function (d, i, arr, state) {
+          return generateContent(d);
+        })
+        .nodeEnter(function (node) {
+          d3.select(this).call(
+            d3
+              .drag()
+              .filter(function (x, node) {
+                return dragEnabled && this.classList.contains('draggable');
+              })
+              .on('start', function (d, node) {
+                onDragStart(this, d, node);
+              })
+              .on('drag', function (dragEvent, node) {
+                onDrag(this, dragEvent);
+              })
+              .on('end', function (d) {
+                onDragEnd(this, d);
+              })
+          );
+        })
+        .container('.chart-container')
+        .data(data)
+        .render();
+    }
+
+    function generateContent(d) {
+      const color = '#FFFFFF';
+ 
+      const imageDiffVert = 25 + 2;
+      return `
+        <div class="node-container" onclick="changeActiveId('${d.id}')" style='
+        
+        width:${d.width}px;
+        height:${d.height}px;
+        padding-top:${imageDiffVert - 2}px;
+        padding-left:1px;
+        padding-right:1px'>
+                <div class="content-container" style="font-family: 'Inter', sans-serif;  margin-left:-1px;width:${
+                  d.width - 2
+                }px;height:${
+        d.height - imageDiffVert
+      }px;
+
+      ${String(d.id)  === String(ActiveId) ? 'background: red; color: #fff !important;' : ''}
+
+     
+      border-radius:10px;border: ${
+        d.data._highlighted || d.data._upToTheRootHighlighted
+          ? '5px solid #E27396"'
+          : '1px solid #E4E2E9"'
+      } >
+                    <div style="display:flex;justify-content:flex-end;margin-top:5px;margin-right:8px">
+                     ${d.data.note} 
+                    
+                    
+                    </div>
+                    <div  style="margin-top:${
+                      -imageDiffVert - 20
+                    }px;margin-left:${15}px;border-radius:100px;width:50px;height:50px;" ></div>
+                   
+                    <div style="font-size:15px;margin-left:20px;margin-top:10px" ${String(d.id)  === String(ActiveId) ? 'color: #fff ;' : 'color: #08011E ;'} >  ${
+                      d.data.name
+                    } ${d.data.lastName} </div>
+                    <div style="margin-left:20px;margin-top:3px;font-size:10px;" ${String(d.id)  === String(ActiveId) ? 'color: #fff ;' : 'color: #716E7B ;'}> ${
+                      d.data.position
+                    } </div>
+
+                </div>
+            </div>
+        `;
+    }
+  </script>
+</body>
+</html>
